@@ -1,0 +1,27 @@
+# Multi-stage build for Java connector
+FROM openjdk:11-jdk-slim AS builder
+
+WORKDIR /app
+
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Maven files first for better caching
+COPY pom.xml .
+
+# Download dependencies
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY src ./src
+
+# Build the connector
+RUN mvn clean package -DskipTests
+
+# Copy the built JAR to a volume mount point
+FROM alpine:latest
+WORKDIR /app
+COPY --from=builder /app/target/*.jar ./target/
+CMD ["sh", "-c", "cp /app/target/*.jar /app/target/ && sleep 10"]

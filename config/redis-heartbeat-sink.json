@@ -1,0 +1,15 @@
+{
+  "name": "redis-heartbeat-sink",
+  "config": {
+    "connector.class": "com.example.RedisHeartbeatSinkConnector",
+    "tasks.max": "1",
+    "topics": "heartbeat-topic",
+    "redis.host": "redis",
+    "redis.port": "6379",
+    "redis.key": "heartbeat",
+    "redis.ttl": "60",
+    "redis.database": "0",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter"
+  }
+}
