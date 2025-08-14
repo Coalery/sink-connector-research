@@ -4,18 +4,21 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 
 import java.util.Collection;
 import java.util.Map;
+import java.time.Duration;
 
 public class RedisHeartbeatSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(RedisHeartbeatSinkTask.class);
 
   private RedisHeartbeatSinkConnectorConfig config;
-  private JedisPool jedisPool;
+  private RedisClient redisClient;
+  private StatefulRedisConnection<String, String> connection;
   private String redisKey;
   private int redisTtl;
 
@@ -40,23 +43,25 @@ public class RedisHeartbeatSinkTask extends SinkTask {
     log.info("Connecting to Redis at {}:{} with key: {}, TTL: {} seconds",
         redisHost, redisPort, redisKey, redisTtl);
 
-    JedisPoolConfig poolConfig = new JedisPoolConfig();
-    poolConfig.setMaxTotal(10);
-    poolConfig.setMaxIdle(5);
-    poolConfig.setMinIdle(1);
-    poolConfig.setTestOnBorrow(true);
-    poolConfig.setTestOnReturn(true);
-    poolConfig.setTestWhileIdle(true);
+    // Redis URI 구성
+    RedisURI.Builder builder = RedisURI.builder()
+        .withHost(redisHost)
+        .withPort(redisPort)
+        .withDatabase(redisDatabase)
+        .withTimeout(Duration.ofMillis(2000));
 
     if (redisPassword != null && !redisPassword.isEmpty()) {
-      jedisPool = new JedisPool(poolConfig, redisHost, redisPort, 2000, redisPassword, redisDatabase);
-    } else {
-      jedisPool = new JedisPool(poolConfig, redisHost, redisPort, 2000, null, redisDatabase);
+      builder.withPassword(redisPassword.toCharArray());
     }
 
+    RedisURI redisUri = builder.build();
+    redisClient = RedisClient.create(redisUri);
+    connection = redisClient.connect();
+
     // 초기 heartbeat 키 설정
-    try (Jedis jedis = jedisPool.getResource()) {
-      jedis.setex(redisKey, redisTtl, String.valueOf(System.currentTimeMillis()));
+    try {
+      RedisCommands<String, String> commands = connection.sync();
+      commands.setex(redisKey, redisTtl, String.valueOf(System.currentTimeMillis()));
       log.info("Initial heartbeat key '{}' set with TTL {} seconds", redisKey, redisTtl);
     } catch (Exception e) {
       log.error("Failed to initialize Redis heartbeat key", e);
@@ -72,14 +77,15 @@ public class RedisHeartbeatSinkTask extends SinkTask {
 
     log.debug("Processing {} records", records.size());
 
-    try (Jedis jedis = jedisPool.getResource()) {
+    try {
+      RedisCommands<String, String> commands = connection.sync();
       for (SinkRecord record : records) {
         // 각 메시지마다 heartbeat 키의 TTL을 갱신
         long currentTime = System.currentTimeMillis();
         String value = String.valueOf(currentTime);
 
         // SETEX 명령으로 값과 TTL을 동시에 설정
-        jedis.setex(redisKey, redisTtl, value);
+        commands.setex(redisKey, redisTtl, value);
 
         log.debug(
             "Updated heartbeat key '{}' with value '{}' and TTL {} seconds for record from topic: {}, partition: {}, offset: {}",
@@ -98,9 +104,12 @@ public class RedisHeartbeatSinkTask extends SinkTask {
   public void stop() {
     log.info("Stopping Redis Heartbeat Sink Task");
 
-    if (jedisPool != null && !jedisPool.isClosed()) {
-      jedisPool.close();
-      log.info("Redis connection pool closed");
+    if (connection != null && connection.isOpen()) {
+      connection.close();
     }
+    if (redisClient != null) {
+      redisClient.shutdown();
+    }
+    log.info("Redis connection closed");
   }
 }
