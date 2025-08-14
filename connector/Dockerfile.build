@@ -3,25 +3,41 @@ FROM openjdk:11-jdk-slim AS builder
 
 WORKDIR /app
 
-# Install Maven
+# Install required tools
 RUN apt-get update && \
-    apt-get install -y maven && \
+    apt-get install -y curl unzip && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy Maven files first for better caching
-COPY pom.xml .
+# Install Gradle
+RUN curl -L https://services.gradle.org/distributions/gradle-8.5-bin.zip -o gradle-8.5-bin.zip && \
+    unzip gradle-8.5-bin.zip && \
+    mv gradle-8.5 /opt/gradle && \
+    ln -s /opt/gradle/bin/gradle /usr/bin/gradle && \
+    rm gradle-8.5-bin.zip
+
+# Copy Gradle files first for better caching
+COPY build.gradle .
+COPY gradle ./gradle
+COPY gradlew .
+COPY gradlew.bat .
+
+# Generate Gradle wrapper JAR
+RUN gradle wrapper --gradle-version 8.5
+
+# Make gradlew executable
+RUN chmod +x gradlew
 
 # Download dependencies
-RUN mvn dependency:go-offline -B
+RUN ./gradlew dependencies --no-daemon
 
 # Copy source code
 COPY src ./src
 
 # Build the connector
-RUN mvn clean package -DskipTests
+RUN ./gradlew shadowJar --no-daemon
 
 # Copy the built JAR to a volume mount point
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/target/*.jar ./target/
+COPY --from=builder /app/build/libs/*.jar ./target/
 CMD ["sh", "-c", "cp /app/target/*.jar /app/target/ && sleep 10"]

@@ -1,18 +1,25 @@
 # ===================================
-# Java & Maven
+# Java & Gradle
 # ===================================
 
-# Maven build artifacts
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
+# Gradle build artifacts
+build/
+.gradle/
+
+# Gradle configuration
+gradle-app.setting
+.gradletasknamecache
+
+# Gradle wrapper (keep these files)
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradlew
+!gradlew.bat
+
+# Gradle daemon
+.gradle/daemon/
+.gradle/native/
+.gradle/wrapper/dists/
 
 # Compiled class files
 *.class

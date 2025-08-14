@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+configurations {
+    providedCompile
+}
+
+sourceSets {
+    main {
+        compileClasspath += configurations.providedCompile
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Kafka Connect API (provided scope)
+    providedCompile 'org.apache.kafka:connect-api:3.5.0'
+    
+    // Redis client
+    implementation 'io.lettuce:lettuce-core:6.3.0.RELEASE'
+    
+    // Logging
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    
+    // Test dependencies
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+shadowJar {
+    // Maven Shade Plugin과 동일한 설정
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    
+    // providedCompile 의존성은 제외
+    configurations = [project.configurations.runtimeClasspath]
+    
+    archiveClassifier = ''
+    archiveVersion = ''
+    archiveBaseName = project.name
+}
+
+// shadow jar가 기본 빌드 태스크가 되도록 설정
+build.dependsOn shadowJar
