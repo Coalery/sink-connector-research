@@ -236,20 +236,20 @@ redis-exporter:
 sink-connector-research/
 ├── 📋 README.md                    # 이 파일
 ├── 🐳 docker-compose.yml           # Docker Compose 설정
-├── 🚀 run.sh                      # 원클릭 실행 스크립트
-├── 📦 connector/                  # Java Connector 소스
-│   ├── 📄 pom.xml                # Maven 설정
-│   ├── 🐳 Dockerfile.build       # 빌드용 Dockerfile
+├── 🚀 run.sh                       # 원클릭 실행 스크립트
+├── 📦 connector/                   # Java Connector 소스
+│   ├── 📄 pom.xml                  # Maven 설정
+│   ├── 🐳 Dockerfile.build         # 빌드용 Dockerfile
 │   └── 📁 src/main/java/com/example/
 │       ├── 🔌 RedisHeartbeatSinkConnector.java
-│       ├── ⚙️  RedisHeartbeatSinkConnectorConfig.java
+│       ├── ⚙️ RedisHeartbeatSinkConnectorConfig.java
 │       └── 🔄 RedisHeartbeatSinkTask.java
-├── ⚙️  config/                    # Connector 설정
+├── ⚙️  config/                     # Connector 설정
 │   └── 📄 redis-heartbeat-sink.json
-└── 📜 scripts/                    # 유틸리티 스크립트
-    ├── 🛠️  setup.sh              # 초기 설정
-    ├── 📤 test-producer.sh       # 메시지 생성기
-    └── 👁️  check-redis.sh        # Redis 상태 확인
+└── 📜 scripts/                     # 유틸리티 스크립트
+    ├── 🛠️  setup.sh                # 초기 설정
+    ├── 📤 test-producer.sh         # 메시지 생성기
+    └── 👁️  check-redis.sh          # Redis 상태 확인
 ```
 
 ## ⚙️ Connector 설정 상세
